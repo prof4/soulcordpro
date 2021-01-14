@@ -18,7 +18,7 @@ const mongo = require('@util/mongo')
 const modLogs = require('@features/mod-logs')
 
 const client = new Commando.CommandoClient({
-  owner: '251120969320497152',
+  owner: '725041335630954587',
   commandPrefix: config.prefix,
 })
 
@@ -62,4 +62,4 @@ client.on('ready', async () => {
   modLogs(client)
 })
 
-client.login(config.token)
+client.login(process.env.token)
