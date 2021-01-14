@@ -1,6 +1,5 @@
-const { prefix } = require('./config.json')
+const { prefix } = require('@root/config.json')
 
-const firstMessage = require('./first-message')
 module.exports = (client, aliases, callback) => {
   if (typeof aliases === 'string') {
     aliases = [aliases]

@@ -1,49 +1,65 @@
-const Discord = require('discord.js')
-const client = new Discord.Client()
+require('module-alias/register')
 
-const config = require('./config.json')
-const command = require('./command')
-const firstMessage = require('./first-message')
+// const Discord = require('discord.js')
+// const client = new Discord.Client()
 
-client.on('ready', () => {
-  console.log('The client is ready!')
-  
-  
-  command(client, ['react', 'rts'], (message) => {
-    firstMessage(client, '725721328296001698', 'hello world!!!', ['🔥', '🍉'])
-  })
+const { MongoClient } = require('mongodb')
+const MongoDBProvider = require('commando-provider-mongo')
+const path = require('path')
+const Commando = require('discord.js-commando')
 
-  command(client, ['ping', 'test'], (message) => {
-    message.channel.send('Pong!')
-  })
+const config = require('@root/config.json')
+const { loadLanguages } = require('@util/language')
+const loadCommands = require('@root/commands/load-commands')
+const commandBase = require('@root/commands/command-base')
+const loadFeatures = require('@root/features/load-features')
+const mongo = require('@util/mongo')
 
-  command(client, 'servers', (message) => {
-    client.guilds.cache.forEach((guild) => {
-      message.channel.send(
-        `${guild.name} has a total of ${guild.memberCount} members`
-      )
-    })
-  })
+const modLogs = require('@features/mod-logs')
 
-  command(client, ['cc', 'clearchannel'], (message) => {
-    if (message.member.hasPermission('ADMINISTRATOR')) {
-      message.channel.messages.fetch().then((results) => {
-        message.channel.bulkDelete(results)
-      })
-    }
-  })
-
-  command(client, 'status', (message) => {
-    const content = message.content.replace(':status ', '')
-    // "!status hello world" -> "hello world"
-
-    client.user.setPresence({
-      activity: {
-        name: content,
-        type: 0,
-      },
-    })
-  })
+const client = new Commando.CommandoClient({
+  owner: '251120969320497152',
+  commandPrefix: config.prefix,
 })
 
-client.login(process.env.token)
+client.setProvider(
+  MongoClient.connect(config.mongoPath, {
+    useUnifiedTopology: true,
+    useFindAndModify: false,
+  })
+    .then((client) => {
+      return new MongoDBProvider(client, 'WornOffKeys')
+    })
+    .catch((err) => {
+      console.error(err)
+    })
+)
+
+client.on('ready', async () => {
+  console.log('The client is ready!')
+
+  await mongo()
+
+  client.registry
+    .registerGroups([
+      ['misc', 'misc commands'],
+      ['moderation', 'moderation commands'],
+      ['economy', 'Commands for the economy system'],
+      ['giveaway', 'Commands to manage giveaways'],
+      ['games', 'Commands to handle games'],
+      ['thanks', 'Commands to help thank people'],
+      ['suggestions', 'Commands regarding suggestions'],
+      ['testing', 'Commands to test joining and leaving'],
+    ])
+    .registerDefaults()
+    .registerCommandsIn(path.join(__dirname, 'cmds'))
+
+  loadLanguages(client)
+  // commandBase.loadPrefixes(client)
+  // loadCommands(client)
+  loadFeatures(client)
+
+  modLogs(client)
+})
+
+client.login(config.token)
